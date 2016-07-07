@@ -47,7 +47,7 @@ static ErlDrvData start(ErlDrvPort port, char *command)
     if (me->fd < 0)
         goto fail0;
 
-    int wd = inotify_add_watch(me->fd, command, IN_CREATE|IN_DELETE|IN_MOVE);
+    int wd = inotify_add_watch(me->fd, command, IN_CREATE|IN_DELETE|IN_MOVE|IN_CLOSE_WRITE);
     if (-1 == wd)
         goto fail1;
 
