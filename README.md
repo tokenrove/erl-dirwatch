@@ -1,4 +1,7 @@
 
+**You probably don't want to use this.**
+
+
 Minimal directory watching for Erlang; just enough to support
 `bertconf`.
 
