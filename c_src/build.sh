@@ -44,4 +44,4 @@ up_to_date_p() {
 
 if (up_to_date_p); then exit 0; fi
 
-exec "$CC" $CFLAGS -shared -o "$TARGET" $SRC/$IMPLEMENTATION.c $LDFLAGS
+exec "$CC" $CFLAGS -shared -o "$TARGET" $SRC/common.c $SRC/$IMPLEMENTATION.c $LDFLAGS

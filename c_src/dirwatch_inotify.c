@@ -4,7 +4,6 @@
 
 
 #include <stdint.h>
-#include <string.h>
 #include <unistd.h>
 
 #include <sys/inotify.h>
@@ -12,6 +11,7 @@
 #include "ei.h"
 #include "erl_driver.h"
 
+#include "common.h"
 #include "macrology.h"
 
 
@@ -19,7 +19,7 @@ struct instance {
     ErlDrvPort port;
     int fd;
     int wd;
-    unsigned int n_cooldowns;
+    unsigned n_cooldowns;
     unsigned long cooldown;
 };
 
@@ -30,22 +30,9 @@ enum { MAX_COOLDOWNS = 12 };
 
 static ErlDrvData start(ErlDrvPort port, char *command)
 {
-    if (!command)
-        return ERL_DRV_ERROR_BADARG;
-
-    command = strchr(command, ' ');
-    if (!command)
-        return ERL_DRV_ERROR_BADARG;
-
-    command += strspn(command, " ");
-    if (!*command)
-        return ERL_DRV_ERROR_BADARG;
-
-    unsigned long cooldown = strtoul(command, &command, 10);
-    if (' ' != *command)
-        return ERL_DRV_ERROR_BADARG;
-    command += strspn(command, " ");
-    if (!*command)
+    unsigned long cooldown;
+    char *path;
+    if (!common_get_arguments(command, &path, &cooldown))
         return ERL_DRV_ERROR_BADARG;
 
     struct instance *me = driver_alloc(sizeof(*me));
@@ -58,7 +45,7 @@ static ErlDrvData start(ErlDrvPort port, char *command)
     if (me->fd < 0)
         goto fail0;
 
-    int wd = inotify_add_watch(me->fd, command,
+    int wd = inotify_add_watch(me->fd, path,
                                IN_CREATE|IN_DELETE|IN_MOVE|IN_CLOSE_WRITE);
     if (-1 == wd)
         goto fail1;
