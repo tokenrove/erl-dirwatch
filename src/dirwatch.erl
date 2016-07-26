@@ -6,9 +6,7 @@
 
 -record(state,
         {pid :: pid(),
-         port :: port(),
-         cooldown_ms :: timer:time(),
-         timer :: timer:tref()}).
+         port :: port()}).
 
 
 priv_dir() ->
@@ -54,32 +52,22 @@ stop(Handle) ->
 
 new_watcher(Pid, Path, CooldownMs) ->
     ok = load(),
-    Port = open_port({spawn_driver, "dirwatch "++Path}, [in]),
-    watch(#state{pid=Pid, port=Port, cooldown_ms=CooldownMs}).
-
-
-bump_timer(undefined, Ms) ->
-    {ok, U} = timer:send_after(Ms, cool),
-    U;
-bump_timer(T, Ms) ->
-    timer:cancel(T),
-    bump_timer(undefined, Ms).
+    Port = open_port({spawn_driver,
+                      ["dirwatch ", integer_to_list(CooldownMs, 10), $ , Path]},
+                     [in]),
+    watch(#state{pid=Pid, port=Port}).
 
 
 -spec watch(#state{}) -> ok.
 
 watch(S=#state{
            pid = Pid,
-           port = Port,
-           cooldown_ms = CooldownMs,
-           timer = T
+           port = Port
       }) ->
     receive
         {Port, ok} ->
-            watch(S#state{timer=bump_timer(T, CooldownMs)});
-        cool ->
             Pid ! {dirwatch, self(), changed},
-            watch(S#state{timer=undefined});
+            watch(S);
         terminate ->
             ok;
         _ ->
