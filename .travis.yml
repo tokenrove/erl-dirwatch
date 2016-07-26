@@ -1,0 +1,41 @@
+os:
+- linux
+- osx
+language: c
+compiler:
+- gcc-5
+cache:
+  directories:
+  - "$HOME/otp"
+env:
+- OTP_RELEASE=18.3
+before_install:
+- function osx() { [[ "$TRAVIS_OS_NAME" == "osx" ]]; }
+- function linux() { [[ "$TRAVIS_OS_NAME" == "linux" ]]; }
+- if osx; then brew update && brew install gcc5; fi
+install:
+- mkdir -p ~/otp
+- cd ~/otp
+- if linux; then wget https://s3.amazonaws.com/travis-otp-releases/binaries/$(lsb_release
+  -is | tr "A-Z" "a-z")/$(lsb_release -rs)/$(uname -m)/erlang-${OTP_RELEASE}-nonroot.tar.bz2
+  && tar xjf erlang-${OTP_RELEASE}-nonroot.tar.bz2; fi
+- if osx; then curl -O https://raw.githubusercontent.com/kerl/kerl/master/kerl &&
+  chmod a+x kerl && travis_wait 60 ./kerl build $OTP_RELEASE $OTP_RELEASE && ./kerl
+  install $OTP_RELEASE ~/otp/$OTP_RELEASE; fi
+- source ~/otp/${OTP_RELEASE}/activate
+- cd -
+script:
+- "./rebar3 compile"
+dist: trusty
+sudo: required
+group: edge
+notifications:
+  email: false
+  slack:
+    secure: IpnqNX1iNLiTTPGWlGOPjy3rSXbcPZy17HL9fjjt/OUimOMZf5tUGSmyeCatWHHp8A6ZTphvl7IayxZgh7MORgm3CybSw9RQ8/FQA7B32zwa99qbpbusGzd8siWnC/O6lkU0/btSwJSYORK/cEHhBsG+7GNYh9/epafFAIFtLBWqwwJcKqUw3qIPzv0F1uICjUshTEqT5jNgFybS7BDjc7BuopdFSjJHgS82/VI5Vjx4W+1oUqLJKJqHw2ov4wZVqYD4iwRLqyYk5uH5jVMKfqS5e11vK28agOFAVZssDd+smzieDp7R8OArEzIZy/7Ulj+7IWdkRor65dtqWrlIJf4ZyvIlo6FawUhLWq09rgJun1mMuxMs0BiC8+GAPY8iHjCfoCJGvxL+wWX4vFylUSJKfK1UD3oyz7RwRVCtYTz7XgRWV6b97HliBJtkThZjmA+dg6Q/Ob3ZSYBAE8nCVfvXxqL/bY6rZ3PpHrkD5I+/mUgMQLaxpzEsimWIFdpqXLxhLRYY83/qX7C1XMQTg2E5ISywongn5neF0EAujyWUmSJvzMF9cPGziW+tgdrgcteoqcBg9lXqQ3IiY7D7LIp2lC+pttmMPkNITxBXjeEr0z4J43orXMG/8gbnhDN+PzY4/xL/F0WqRZvJCM8GpweIY3E4PNwM91tPDgyD76A=
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - gcc-5
