@@ -1,20 +1,21 @@
 
 **You probably don't want to use this.**
 
+If you have serious file watching needs, you are probably looking for
+[synrc/fs](https://github.com/synrc/fs).
 
-Minimal directory watching for Erlang; just enough to support
-`bertconf`.
+This provides absolutely minimal directory watching for Erlang; just
+enough to support `bertconf`.
 
 That is, for each directory specified, we watch only this directory
 for move, create, and delete events, and do not setup recursive
 watches.
 
-Uses `inotify` on Linux.
+Uses `inotify` on Linux, `kqueue` on BSDs.
 
-When ported to BSDs, it will use `kqueue` on BSDs.  Does _not_ use
-`fsevents` on OS X, and probably never will: the only exposed API
-requires you to use a `CFRunLoop`, even though I'm sure there's a nice
-UNIX-y `fd` in there somewhere.
+Does _not_ use `fsevents` on OS X, and probably never will: the only
+exposed API requires you to use a `CFRunLoop`, even though I'm sure
+there's a nice UNIX-y `fd` in there somewhere.
 
 It would have been nice to do this as a NIF that returns an fd from
 inotify and used `open_port({fd, ...` and Erlang's binary matching to
