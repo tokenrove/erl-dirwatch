@@ -1,10 +1,10 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 #
 # Evaluate which function is fastest on this machine right now, and
 # build it into a shared object.  This is just a shell script rather
 # than a Makefile since there's not much point avoiding rebuilds here.
 
-set -eu -o pipefail
+set -eu
 
 ERTS_INCLUDE_DIR=${ERTS_INCLUDE_DIR:-$(erl -noshell -s init stop -eval "io:format(\"~s/erts-~s/include/\", [code:root_dir(), erlang:system_info(version)]).")}
 ERL_INCLUDE_DIR=${ERL_INCLUDE_DIR:-$(erl -noshell -s init stop -eval "io:format(\"~s/usr/include/\", [code:root_dir()]).")}
@@ -21,9 +21,10 @@ case "$OS" in
         ;;
     Darwin)
         LDFLAGS="$LDFLAGS -flat_namespace -undefined suppress"
-        echo "Not implemented yet for $OS.  Sorry."
-        exit 1
+        IMPLEMENTATION=dirwatch_kqueue
         ;;
+    DragonFly) IMPLEMENTATION=dirwatch_kqueue;;
+    FreeBSD) IMPLEMENTATION=dirwatch_kqueue;;
     *)
         echo "Not implemented yet for $OS.  Sorry."
         exit 1
@@ -36,6 +37,7 @@ SRC=./c_src
 mkdir -p priv
 
 up_to_date_p() {
+    if [ ! -e "$TARGET" ]; then exit 1; fi
     for i in $SRC/*.c; do
         if [ "$TARGET" -ot "$i" ]; then exit 1; fi
     done
@@ -44,4 +46,4 @@ up_to_date_p() {
 
 if (up_to_date_p); then exit 0; fi
 
-exec "$CC" $CFLAGS -shared -o "$TARGET" $SRC/$IMPLEMENTATION.c $LDFLAGS
+exec "$CC" $CFLAGS -shared -o "$TARGET" $SRC/common.c $SRC/$IMPLEMENTATION.c $LDFLAGS
