@@ -24,7 +24,7 @@
 struct instance {
     ErlDrvPort port;
     int kq, fd;
-    enum { NEEDS_INITIALIZATION, NEEDS_RESCAN, NORMAL } state;
+    bool needs_rescan_p;
     size_t max_fds_seen;
     unsigned n_cooldowns;
     unsigned long cooldown;
@@ -100,10 +100,12 @@ static ErlDrvData start(ErlDrvPort port, char *command)
 
     struct instance *me = driver_alloc(sizeof(*me));
     if (!me) return ERL_DRV_ERROR_GENERAL;
-    *me = (struct instance){0};
-    me->port = port;
+    *me = (struct instance){
+        .port = port,
+        .needs_rescan_p = true,
+        .kq = kqueue()
+    };
 
-    me->kq = kqueue();
     if (me->kq < 0)
         goto fail0;
 
@@ -145,25 +147,9 @@ static void timeout(ErlDrvData me_)
 {
     struct instance *me = (struct instance *)me_;
 
-    switch (me->state) {
-    case NEEDS_INITIALIZATION:
-        me->state = NEEDS_RESCAN;
-    case NEEDS_RESCAN:
-    case NORMAL:
-    {
-        ErlDrvTermData d[] = {
-            ERL_DRV_PORT, driver_mk_port(me->port),
-            ERL_DRV_ATOM, driver_mk_atom("ok"),
-            ERL_DRV_TUPLE, 2
-        };
-        erl_drv_output_term(driver_mk_port(me->port), d, sizeof(d)/sizeof(*d));
-        break;
-    }
-    default:
-        driver_failure_atom(me->port, "abort");
-    }
+    me->n_cooldowns = 0;
 
-    if (NEEDS_RESCAN == me->state) {
+    if (me->needs_rescan_p) {
         cleanup_fds(me);
 
         struct kevent in;
@@ -173,8 +159,19 @@ static void timeout(ErlDrvData me_)
         if (0 != kevent(me->kq, &in, 1, NULL, 0, NULL))
             driver_failure_posix(me->port, errno);
         rescan_directory(me);
-        me->state = NORMAL;
+        me->needs_rescan_p = false;
     }
+
+    /* Note that we send this changed message immediately upon
+       initialization, because it simplifies our logic and it doesn't
+       hurt anything.  If changes become costly, you'll probably want
+       to restore the tristate logic that was here. */
+    ErlDrvTermData d[] = {
+        ERL_DRV_PORT, driver_mk_port(me->port),
+        ERL_DRV_ATOM, driver_mk_atom("ok"),
+        ERL_DRV_TUPLE, 2
+    };
+    erl_drv_output_term(driver_mk_port(me->port), d, sizeof(d)/sizeof(*d));
 
     if (driver_select(me->port, (ErlDrvEvent)(intptr_t)me->kq,
                       ERL_DRV_READ|ERL_DRV_USE, 1))
@@ -203,7 +200,7 @@ static void ready_input(ErlDrvData me_, ErlDrvEvent UNUSED)
         bump_timer(me);
 
         if (out.ident == (uintptr_t)me->fd)
-            me->state = NEEDS_RESCAN;
+            me->needs_rescan_p = true;
 
         if (out.fflags & NOTE_DELETE)
             close(out.ident);
