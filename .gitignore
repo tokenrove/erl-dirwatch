@@ -1,0 +1,4 @@
+ebin/
+priv/*.so
+_build/
+.rebar3/
