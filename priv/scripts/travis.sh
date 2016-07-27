@@ -19,6 +19,6 @@ fi
 if osx; then
     curl -O https://raw.githubusercontent.com/kerl/kerl/master/kerl
     chmod a+x kerl
-    travis_wait 60 ./kerl build $OTP_RELEASE $OTP_RELEASE
+    ./kerl build $OTP_RELEASE $OTP_RELEASE
     ./kerl install $OTP_RELEASE ~/otp/$OTP_RELEASE
 fi

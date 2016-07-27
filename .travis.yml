@@ -10,7 +10,7 @@ cache:
 env:
 - OTP_RELEASE=18.3
 install:
-- ./priv/scripts/travis.sh
+- travis_wait 60 ./priv/scripts/travis.sh
 - source ~/otp/${OTP_RELEASE}/activate
 script:
 - ./rebar3 compile
