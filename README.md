@@ -24,15 +24,15 @@ OSes where less-UNIX-y approaches are used.  Instead we use a
 linked-in driver which allows us to do the right thing for inotify,
 and still offers some portability options.
 
-== Building
+## Building
 
 ```
 rebar3 compile
 ```
 
-== Usage
+## Usage
 
-=== `dirwatch:start(Self, Path, CooldownMs = 5000) -> {ok,Handle} | {error,_}`
+### `dirwatch:start(Self, Path, CooldownMs = 5000) -> {ok,Handle} | {error,_}`
 
 Start watching the files in `Path`.  After events have occurred, will
 wait `CooldownMs` before sending a message of the form
@@ -41,6 +41,6 @@ wait `CooldownMs` before sending a message of the form
 The dirwatch process referred to by `Handle` monitors `Self` and
 terminates if it terminates.
 
-=== `dirwatch:stop(Handle) -> ok | {error,_}`
+### `dirwatch:stop(Handle) -> ok | {error,_}`
 
 Explicitly stops a dirwatch process.
