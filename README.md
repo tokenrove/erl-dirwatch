@@ -17,6 +17,8 @@ Does _not_ use `fsevents` on OS X, and probably never will: the only
 exposed API requires you to use a `CFRunLoop`, even though I'm sure
 there's a nice UNIX-y `fd` in there somewhere.
 
+Right now `kqueue` is broken again on macOS, so we just poll.
+
 It would have been nice to do this as a NIF that returns an fd from
 inotify and used `open_port({fd, ...` and Erlang's binary matching to
 parse inotify messages, but this wouldn't permit us to handle other
@@ -37,6 +39,9 @@ rebar3 compile
 Start watching the files in `Path`.  After events have occurred, will
 wait `CooldownMs` before sending a message of the form
 `{dirwatch,Handle,changed}` to the `Self` process.
+
+On systems without a functioning driver, you'll get this message every
+`CooldownMs` milliseconds.
 
 The dirwatch process referred to by `Handle` monitors `Self` and
 terminates if it terminates.

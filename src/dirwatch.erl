@@ -22,13 +22,28 @@ priv_dir() ->
 %% that child dies.
 load() ->
     case erl_ddll:load_driver(priv_dir(), "dirwatch") of
-        ok -> ok;
-        {error, already_loaded} -> ok;
+        ok -> driver;
+        {error, already_loaded} -> driver;
         {error, Message} ->
-            error_logger:error_msg("dirwatch: error loading driver: ~p",
-                                   [erl_ddll:format_error(Message)])
+            error_logger:error_msg("dirwatch: falling back to polling;"
+                                   ++" failed to load driver: ~p",
+                                   [erl_ddll:format_error(Message)]),
+            poll
     end.
 
+open(Path, CooldownMs) ->
+    case load() of
+        driver ->
+            open_port({spawn_driver,
+                       ["dirwatch ", integer_to_list(CooldownMs, 10), $\s, Path]},
+                      [in]);
+        poll ->
+            spawn_link(fun () -> polling_loop(self(), CooldownMs) end)
+    end.
+
+polling_loop(Pid, CooldownMs) ->
+    erlang:send_after(CooldownMs, Pid, {self(), ok}),
+    polling_loop(Pid, CooldownMs).
 
 -spec start(pid(), file:name_all()) -> {ok,handle()} | {error,_}.
 
@@ -51,10 +66,7 @@ stop(Handle) ->
 
 
 new_watcher(Pid, Path, CooldownMs) ->
-    ok = load(),
-    Port = open_port({spawn_driver,
-                      ["dirwatch ", integer_to_list(CooldownMs, 10), $\s, Path]},
-                     [in]),
+    Port = open(Path, CooldownMs),
     watch(#state{pid=Pid, port=Port}).
 
 

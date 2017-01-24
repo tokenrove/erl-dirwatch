@@ -16,18 +16,17 @@ LDFLAGS=${LDFLAGS:-}
 OS="$(uname -s)"
 
 case "$OS" in
-    Linux)
-        IMPLEMENTATION=dirwatch_inotify
-        ;;
-    Darwin)
-        LDFLAGS="$LDFLAGS -flat_namespace -undefined suppress"
-        IMPLEMENTATION=dirwatch_kqueue
-        ;;
+    Linux) IMPLEMENTATION=dirwatch_inotify;;
     DragonFly) IMPLEMENTATION=dirwatch_kqueue;;
     FreeBSD) IMPLEMENTATION=dirwatch_kqueue;;
+    Darwin)
+        echo "kqueue and other APIs are hopelessly broken on this OS"
+        echo "Falling back to polling."
+        exit 0
+        ;;
     *)
-        echo "Not implemented yet for $OS.  Sorry."
-        exit 1
+        echo "Falling back to polling (no driver)."
+        exit 0
         ;;
 esac
 
